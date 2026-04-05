@@ -1,0 +1,32 @@
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+spring:
+  application:
+    name: processing-core
+  datasource:
+    url: jdbc:postgresql://localhost:5432/twinpix
+    username: twinpix
+    password: twinpix123
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/twinpix
