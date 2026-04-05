@@ -1,5 +1,8 @@
 package br.ufrj.cos.twin.processingcore;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -15,9 +18,24 @@ public class TransactionController {
     private static final Logger log = LoggerFactory.getLogger(TransactionController.class);
 
     private final TransactionRepository repository;
+    private final Timer processingTimer;
+    private final Counter processingSuccessCounter;
+    private final Counter processingErrorCounter;
 
-    public TransactionController(TransactionRepository repository) {
+    public TransactionController(TransactionRepository repository, MeterRegistry meterRegistry) {
         this.repository = repository;
+        this.processingTimer = Timer.builder("twinpix_processing_duration_seconds")
+                .description("Transaction processing latency")
+                .publishPercentiles(0.5, 0.95, 0.99)
+                .register(meterRegistry);
+        this.processingSuccessCounter = Counter.builder("twinpix_processing_total")
+                .tag("status", "success")
+                .description("Total transactions processed")
+                .register(meterRegistry);
+        this.processingErrorCounter = Counter.builder("twinpix_processing_total")
+                .tag("status", "error")
+                .description("Total transactions processed")
+                .register(meterRegistry);
     }
 
     @PostMapping("/transactions/process")
@@ -37,7 +55,7 @@ public class TransactionController {
             return ResponseEntity.badRequest().body(Map.of("error", "amount must be positive"));
         }
 
-        long start = System.currentTimeMillis();
+        Timer.Sample sample = Timer.start();
 
         Transaction tx = new Transaction(
                 request.sourceKey(),
@@ -46,19 +64,29 @@ public class TransactionController {
                 request.amount()
         );
 
-        tx = repository.save(tx);
+        try {
+            tx = repository.save(tx);
 
-        long elapsed = System.currentTimeMillis() - start;
-        tx.markCompleted(elapsed);
-        tx = repository.save(tx);
+            long elapsed = System.currentTimeMillis() - tx.getCreatedAt().toEpochMilli();
+            tx.markCompleted(elapsed);
+            tx = repository.save(tx);
 
-        log.info("Transaction {} completed in {}ms", tx.getId(), elapsed);
+            sample.stop(processingTimer);
+            processingSuccessCounter.increment();
 
-        return ResponseEntity.ok(new ProcessResponse(
-                tx.getId(),
-                tx.getStatus(),
-                tx.getProcessingTimeMs(),
-                tx.getCreatedAt()
-        ));
+            log.info("Transaction {} completed in {}ms", tx.getId(), elapsed);
+
+            return ResponseEntity.ok(new ProcessResponse(
+                    tx.getId(),
+                    tx.getStatus(),
+                    tx.getProcessingTimeMs(),
+                    tx.getCreatedAt()
+            ));
+        } catch (Exception e) {
+            sample.stop(processingTimer);
+            processingErrorCounter.increment();
+            log.error("Transaction processing failed", e);
+            return ResponseEntity.internalServerError().body(Map.of("error", "processing failed"));
+        }
     }
 }

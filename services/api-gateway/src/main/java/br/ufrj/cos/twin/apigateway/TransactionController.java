@@ -1,5 +1,8 @@
 package br.ufrj.cos.twin.apigateway;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,15 +23,31 @@ public class TransactionController {
     private final RestClient restClient;
     private final String directoryUrl;
     private final String processingCoreUrl;
+    private final Timer transactionTimer;
+    private final Counter transactionSuccessCounter;
+    private final Counter transactionErrorCounter;
 
     public TransactionController(
             RestClient.Builder restClientBuilder,
             @Value("${services.directory.url}") String directoryUrl,
-            @Value("${services.processing-core.url}") String processingCoreUrl
+            @Value("${services.processing-core.url}") String processingCoreUrl,
+            MeterRegistry meterRegistry
     ) {
         this.restClient = restClientBuilder.build();
         this.directoryUrl = directoryUrl;
         this.processingCoreUrl = processingCoreUrl;
+        this.transactionTimer = Timer.builder("twinpix_transaction_duration_seconds")
+                .description("End-to-end transaction latency")
+                .publishPercentiles(0.5, 0.95, 0.99)
+                .register(meterRegistry);
+        this.transactionSuccessCounter = Counter.builder("twinpix_transactions_total")
+                .tag("status", "success")
+                .description("Total transactions processed")
+                .register(meterRegistry);
+        this.transactionErrorCounter = Counter.builder("twinpix_transactions_total")
+                .tag("status", "error")
+                .description("Total transactions processed")
+                .register(meterRegistry);
     }
 
     @PostMapping("/transactions")
@@ -46,6 +65,8 @@ public class TransactionController {
             return ResponseEntity.badRequest().body(Map.of("error", "amount must be positive"));
         }
 
+        Timer.Sample sample = Timer.start();
+
         // 1. Resolver chave no Directory
         KeyLookupResult keyResult;
         try {
@@ -54,6 +75,8 @@ public class TransactionController {
                     .retrieve()
                     .body(KeyLookupResult.class);
         } catch (RestClientResponseException e) {
+            transactionErrorCounter.increment();
+            sample.stop(transactionTimer);
             if (e.getStatusCode().value() == 404) {
                 log.warn("Destination key not found: {}", request.destinationKey());
                 return ResponseEntity.badRequest().body(Map.of("error", "destination key not found"));
@@ -61,6 +84,8 @@ public class TransactionController {
             log.error("Directory service error", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "directory service unavailable"));
         } catch (Exception e) {
+            transactionErrorCounter.increment();
+            sample.stop(transactionTimer);
             log.error("Directory service unreachable", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "directory service unavailable"));
         }
@@ -83,9 +108,14 @@ public class TransactionController {
                     .retrieve()
                     .body(ProcessingResult.class);
         } catch (Exception e) {
+            transactionErrorCounter.increment();
+            sample.stop(transactionTimer);
             log.error("Processing core error", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "processing core unavailable"));
         }
+
+        sample.stop(transactionTimer);
+        transactionSuccessCounter.increment();
 
         log.info("Transaction {} completed with status {}", processingResult.transactionId(), processingResult.status());
 
