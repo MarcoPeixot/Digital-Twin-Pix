@@ -16,3 +16,8 @@ scrape_configs:
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ['processing-core:8082']
+
+  - job_name: 'digital-twin'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['digital-twin:8090']

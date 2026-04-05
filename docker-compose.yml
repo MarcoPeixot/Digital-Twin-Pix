@@ -105,6 +105,14 @@ services:
     build: ./services/digital-twin
     ports:
       - "${DIGITAL_TWIN_PORT:-8090}:8090"
+    depends_on:
+      prometheus:
+        condition: service_started
+      api-gateway:
+        condition: service_healthy
+    environment:
+      PROMETHEUS_URL: http://prometheus:9090
+      TWIN_POLL_INTERVAL_SECONDS: 5
 
 volumes:
   pgdata:
