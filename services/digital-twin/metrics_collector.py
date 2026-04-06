@@ -68,9 +68,10 @@ class MetricsCollector:
         error_count = await self._query(
             f'{cfg["counter"]}{{status="{cfg["error_status"]}"}}'
         )
-        # p95 latency (Prometheus histogram quantile)
+        # p95 latency — Micrometer publishPercentiles() exports pre-computed
+        # gauge with quantile tag, NOT histogram buckets.
         latency_p95 = await self._query(
-            f'histogram_quantile(0.95, rate({cfg["timer"]}_bucket[1m]))'
+            f'{cfg["timer"]}{{quantile="0.95"}}'
         )
 
         throughput = (success_rate or 0.0) + (error_rate_val or 0.0)

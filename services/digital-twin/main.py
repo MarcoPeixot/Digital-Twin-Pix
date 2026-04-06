@@ -10,6 +10,7 @@ from starlette.responses import PlainTextResponse
 from alert_store import AlertStore
 from health_engine import HealthEngine
 from metrics_collector import MetricsCollector
+from mitigation import MitigationEngine, MitigationAction, RecommendationStore
 from models import RiskLevel, SystemState
 
 logging.basicConfig(
@@ -24,11 +25,18 @@ POLL_INTERVAL = int(os.getenv("TWIN_POLL_INTERVAL_SECONDS", "5"))
 collector = MetricsCollector(PROMETHEUS_URL)
 engine = HealthEngine()
 store = AlertStore()
+mitigation_engine = MitigationEngine()
+recommendation_store = RecommendationStore()
 current_state = SystemState()
 
 # Own metrics
 twin_alerts_total = Counter(
     "twin_alerts_total", "Alerts emitted by digital twin", ["risk_level"]
+)
+twin_recommendations_total = Counter(
+    "twin_recommendations_total",
+    "Mitigation recommendations emitted by digital twin",
+    ["action"],
 )
 twin_evaluation_duration = Histogram(
     "twin_evaluation_duration_seconds", "Time to evaluate system state"
@@ -58,11 +66,27 @@ async def poll_loop():
                         a.threshold,
                     )
 
+            # Mitigation: evaluate recommendations based on current state
+            recommendations = mitigation_engine.evaluate(state, alerts)
+            if recommendations:
+                recommendation_store.add_many(recommendations)
+                for rec in recommendations:
+                    twin_recommendations_total.labels(action=rec.action.value).inc()
+                    logger.warning(
+                        "RECOMMENDATION [%s] %s -> %s: %s (mode=%s)",
+                        rec.trigger_risk.value,
+                        rec.target_component,
+                        rec.action.value,
+                        rec.reason,
+                        rec.mode.value,
+                    )
+
             logger.info(
-                "State updated: overall_risk=%s components=%d alerts=%d",
+                "State updated: overall_risk=%s components=%d alerts=%d recommendations=%d",
                 state.overall_risk.value,
                 len(state.components),
                 len(alerts),
+                len(recommendations),
             )
         except Exception:
             logger.exception("Poll loop error")
@@ -103,6 +127,52 @@ def get_alerts(
         "total_stored": store.count(),
         "returned": len(alerts),
         "alerts": [a.to_dict() for a in alerts],
+    }
+
+
+@app.get("/recommendations")
+def get_recommendations(
+    limit: int = Query(50, ge=1, le=500),
+    action: MitigationAction | None = Query(None),
+):
+    recs = recommendation_store.get_recent(limit)
+    if action:
+        recs = [r for r in recs if r.action == action]
+    return {
+        "total_stored": recommendation_store.count(),
+        "returned": len(recs),
+        "recommendations": [r.to_dict() for r in recs],
+    }
+
+
+@app.get("/mitigation/status")
+def mitigation_status():
+    cooldown = engine.cooldown_status
+    elevated = engine.elevated_components
+    return {
+        "mode": mitigation_engine.mode.value,
+        "active_recommendations": len(mitigation_engine._active),
+        "total_recommendations": recommendation_store.count(),
+        "active_details": [
+            {"component": comp, "action": action.value, "risk": risk.value}
+            for (comp, action), risk in mitigation_engine._active.items()
+        ],
+        # Elevated — split by role:
+        #   root_cause: component itself is down (isolate target)
+        #   degraded:   threshold breach, likely propagation from root cause
+        "elevated": {
+            name: {"category": category}
+            for name, category in elevated.items()
+        },
+        # Cooldown: components whose metrics normalised; twin keeps risk at
+        # WARNING for a few cycles to confirm stable recovery.
+        "cooldown_recovery": {
+            name: {"remaining_cycles": remaining}
+            for name, remaining in cooldown.items()
+        },
+        # Persistent log of recent cooldown transitions — survives the
+        # short active window so it's observable even with slow polling.
+        "cooldown_log": engine.cooldown_log,
     }
 
 
