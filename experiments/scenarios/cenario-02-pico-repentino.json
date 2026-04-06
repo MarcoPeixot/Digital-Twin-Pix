@@ -1,0 +1,17 @@
+{
+  "id": "cenario-02-pico-repentino",
+  "name": "Cenario 2 - Pico repentino de acesso",
+  "description": "Aumento abrupto de taxa de requisicoes para avaliar degradacao por concorrencia.",
+  "scenario_group": "stress",
+  "load_profile": {
+    "type": "ramping-vus",
+    "start_vus": 2,
+    "graceful_ramp_down": "0s",
+    "stages": [
+      { "duration": "10s", "target": 2 },
+      { "duration": "10s", "target": 18 },
+      { "duration": "15s", "target": 18 },
+      { "duration": "5s", "target": 2 }
+    ]
+  }
+}

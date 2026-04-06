@@ -1,0 +1,21 @@
+{
+  "id": "cenario-05-falha-parcial-processing",
+  "name": "Cenario 5 - Falha parcial do Processing Core",
+  "description": "Reducao de capacidade e aumento da taxa de erro no processamento.",
+  "scenario_group": "processing",
+  "load_profile": {
+    "type": "constant-vus",
+    "vus": 10,
+    "duration": "35s"
+  },
+  "services": {
+    "processing_core": {
+      "delay_ms": 180,
+      "delay_jitter_ms": 40,
+      "error_rate": 0.2,
+      "worker_count": 2,
+      "queue_capacity": 8,
+      "queue_wait_timeout_ms": 500
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "cenario-04-saturacao-fila",
+  "name": "Cenario 4 - Saturacao da fila",
+  "description": "Capacidade reduzida no processamento para induzir backlog crescente e rejeicoes.",
+  "scenario_group": "queue",
+  "load_profile": {
+    "type": "constant-vus",
+    "vus": 18,
+    "duration": "35s"
+  },
+  "services": {
+    "processing_core": {
+      "delay_ms": 250,
+      "delay_jitter_ms": 50,
+      "worker_count": 1,
+      "queue_capacity": 5,
+      "queue_wait_timeout_ms": 250
+    }
+  }
+}

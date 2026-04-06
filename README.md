@@ -67,6 +67,36 @@ docker compose down
 docker compose down -v   # remove volumes (dados do postgres)
 ```
 
+## Como executar cenarios experimentais
+
+Os cenarios versionados ficam em `experiments/scenarios/`.
+
+Exemplos:
+
+```bash
+# Cenario 1 sem Twin
+python3 scripts/run_experiment.py --scenario cenario-01-operacao-normal --mode without-twin
+
+# Cenario 1 com Twin
+python3 scripts/run_experiment.py --scenario cenario-01-operacao-normal --mode with-twin
+
+# Cenario 4 com Twin, reaproveitando imagens locais ja construidas
+python3 scripts/run_experiment.py --scenario cenario-04-saturacao-fila --mode with-twin --skip-build
+```
+
+Resultados:
+
+* execucoes: `results/runs/<run_id>/`
+* comparacoes: `results/comparisons/`
+
+Comparar duas execucoes:
+
+```bash
+python3 scripts/compare_runs.py \
+  --run-a 20260405T120000Z__cenario-01-operacao-normal__without-twin \
+  --run-b 20260405T121000Z__cenario-01-operacao-normal__with-twin
+```
+
 ## Ordem sugerida de desenvolvimento
 
 1. bootstrap do repositorio;

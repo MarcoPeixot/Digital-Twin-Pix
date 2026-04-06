@@ -26,6 +26,14 @@ spring:
       ddl-auto: update
     open-in-view: false
 
+experiment:
+  processing-delay-ms: ${EXPERIMENT_PROCESSING_DELAY_MS:0}
+  processing-delay-jitter-ms: ${EXPERIMENT_PROCESSING_DELAY_JITTER_MS:0}
+  error-rate: ${EXPERIMENT_ERROR_RATE:0.0}
+  worker-count: ${EXPERIMENT_WORKER_COUNT:4}
+  queue-capacity: ${EXPERIMENT_QUEUE_CAPACITY:20}
+  queue-wait-timeout-ms: ${EXPERIMENT_QUEUE_WAIT_TIMEOUT_MS:2000}
+
 ---
 spring:
   config:

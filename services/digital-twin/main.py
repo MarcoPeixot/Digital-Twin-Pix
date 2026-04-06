@@ -42,6 +42,13 @@ twin_evaluation_duration = Histogram(
     "twin_evaluation_duration_seconds", "Time to evaluate system state"
 )
 
+# Pre-register all labeled series so baseline runs expose explicit zeros.
+for risk_level in RiskLevel:
+    twin_alerts_total.labels(risk_level=risk_level.value).inc(0)
+
+for action in MitigationAction:
+    twin_recommendations_total.labels(action=action.value).inc(0)
+
 
 async def poll_loop():
     while True:

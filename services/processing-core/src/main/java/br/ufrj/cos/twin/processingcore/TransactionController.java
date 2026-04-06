@@ -1,6 +1,7 @@
 package br.ufrj.cos.twin.processingcore;
 
 import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -11,6 +12,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 public class TransactionController {
@@ -21,9 +26,23 @@ public class TransactionController {
     private final Timer processingTimer;
     private final Counter processingSuccessCounter;
     private final Counter processingErrorCounter;
+    private final Counter processingTimeoutCounter;
+    private final Counter processingQueueRejectionCounter;
+    private final Timer queueWaitTimer;
+    private final ProcessingExperimentSettings experimentSettings;
+    private final Semaphore workerSemaphore;
+    private final AtomicInteger queueDepth = new AtomicInteger(0);
+    private final AtomicInteger backlogMax = new AtomicInteger(0);
+    private final AtomicInteger activeWorkers = new AtomicInteger(0);
 
-    public TransactionController(TransactionRepository repository, MeterRegistry meterRegistry) {
+    public TransactionController(
+            TransactionRepository repository,
+            MeterRegistry meterRegistry,
+            ProcessingExperimentSettings experimentSettings
+    ) {
         this.repository = repository;
+        this.experimentSettings = experimentSettings;
+        this.workerSemaphore = new Semaphore(experimentSettings.workerCount(), true);
         this.processingTimer = Timer.builder("twinpix_processing_duration_seconds")
                 .description("Transaction processing latency")
                 .publishPercentiles(0.5, 0.95, 0.99)
@@ -35,6 +54,29 @@ public class TransactionController {
         this.processingErrorCounter = Counter.builder("twinpix_processing_total")
                 .tag("status", "error")
                 .description("Total transactions processed")
+                .register(meterRegistry);
+        this.processingTimeoutCounter = Counter.builder("twinpix_processing_timeouts_total")
+                .description("Total queue wait timeouts")
+                .register(meterRegistry);
+        this.processingQueueRejectionCounter = Counter.builder("twinpix_processing_queue_rejections_total")
+                .description("Total queue rejections")
+                .register(meterRegistry);
+        this.queueWaitTimer = Timer.builder("twinpix_processing_queue_wait_seconds")
+                .description("Time spent waiting for processing worker")
+                .publishPercentiles(0.5, 0.95, 0.99)
+                .register(meterRegistry);
+
+        Gauge.builder("twinpix_processing_queue_depth", queueDepth, AtomicInteger::get)
+                .description("Current queue depth")
+                .register(meterRegistry);
+        Gauge.builder("twinpix_processing_backlog_max", backlogMax, AtomicInteger::get)
+                .description("Maximum backlog observed")
+                .register(meterRegistry);
+        Gauge.builder("twinpix_processing_active_workers", activeWorkers, AtomicInteger::get)
+                .description("Current active workers")
+                .register(meterRegistry);
+        Gauge.builder("twinpix_processing_worker_capacity", experimentSettings, ProcessingExperimentSettings::workerCount)
+                .description("Configured worker capacity")
                 .register(meterRegistry);
     }
 
@@ -56,6 +98,9 @@ public class TransactionController {
         }
 
         Timer.Sample sample = Timer.start();
+        boolean permitAcquired = false;
+        boolean queued = false;
+        long waitStartNanos = System.nanoTime();
 
         Transaction tx = new Transaction(
                 request.sourceKey(),
@@ -65,6 +110,50 @@ public class TransactionController {
         );
 
         try {
+            if (workerSemaphore.tryAcquire()) {
+                permitAcquired = true;
+            } else {
+                int currentQueueDepth = queueDepth.incrementAndGet();
+                queued = true;
+                updateBacklogMax(currentQueueDepth);
+
+                if (currentQueueDepth > experimentSettings.queueCapacity()) {
+                    queueDepth.decrementAndGet();
+                    processingQueueRejectionCounter.increment();
+                    processingErrorCounter.increment();
+                    sample.stop(processingTimer);
+                    log.warn("Queue rejected request due to capacity limit");
+                    return ResponseEntity.status(503).body(Map.of("error", "processing queue saturated"));
+                }
+
+                permitAcquired = workerSemaphore.tryAcquire(
+                        experimentSettings.queueWaitTimeoutMs(),
+                        TimeUnit.MILLISECONDS
+                );
+
+                queueWaitTimer.record(System.nanoTime() - waitStartNanos, TimeUnit.NANOSECONDS);
+                queueDepth.decrementAndGet();
+                queued = false;
+
+                if (!permitAcquired) {
+                    processingTimeoutCounter.increment();
+                    processingErrorCounter.increment();
+                    sample.stop(processingTimer);
+                    log.warn("Queue wait timeout after {}ms", experimentSettings.queueWaitTimeoutMs());
+                    return ResponseEntity.status(503).body(Map.of("error", "processing timeout"));
+                }
+            }
+
+            activeWorkers.incrementAndGet();
+            simulateProcessingDelay();
+
+            if (shouldForceError()) {
+                processingErrorCounter.increment();
+                sample.stop(processingTimer);
+                log.warn("Forced processing error for transaction request");
+                return ResponseEntity.internalServerError().body(Map.of("error", "processing failed"));
+            }
+
             tx = repository.save(tx);
 
             long elapsed = System.currentTimeMillis() - tx.getCreatedAt().toEpochMilli();
@@ -87,6 +176,41 @@ public class TransactionController {
             processingErrorCounter.increment();
             log.error("Transaction processing failed", e);
             return ResponseEntity.internalServerError().body(Map.of("error", "processing failed"));
+        } finally {
+            if (queued) {
+                queueDepth.decrementAndGet();
+            }
+            if (permitAcquired) {
+                activeWorkers.updateAndGet(current -> Math.max(0, current - 1));
+                workerSemaphore.release();
+            }
         }
+    }
+
+    private void simulateProcessingDelay() {
+        long delayMs = experimentSettings.processingDelayMs();
+        if (experimentSettings.processingDelayJitterMs() > 0) {
+            delayMs += ThreadLocalRandom.current().nextLong(experimentSettings.processingDelayJitterMs() + 1L);
+        }
+
+        if (delayMs <= 0) {
+            return;
+        }
+
+        try {
+            Thread.sleep(delayMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Processing delay simulation interrupted");
+        }
+    }
+
+    private boolean shouldForceError() {
+        return experimentSettings.errorRate() > 0.0
+                && ThreadLocalRandom.current().nextDouble() < experimentSettings.errorRate();
+    }
+
+    private void updateBacklogMax(int candidate) {
+        backlogMax.accumulateAndGet(candidate, Math::max);
     }
 }

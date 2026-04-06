@@ -26,3 +26,9 @@ Thumbs.db
 
 # Docker
 docker-compose.override.yml
+
+# Experimental outputs
+results/runs/*
+results/comparisons/*
+!results/runs/.gitkeep
+!results/comparisons/.gitkeep

@@ -17,3 +17,8 @@ management:
 spring:
   application:
     name: directory
+
+experiment:
+  latency-ms: ${EXPERIMENT_LATENCY_MS:0}
+  latency-jitter-ms: ${EXPERIMENT_LATENCY_JITTER_MS:0}
+  error-rate: ${EXPERIMENT_ERROR_RATE:0.0}

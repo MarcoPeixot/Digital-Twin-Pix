@@ -1,0 +1,18 @@
+{
+  "id": "cenario-03-directory-degradado",
+  "name": "Cenario 3 - Degradacao do Directory Service",
+  "description": "Latencia artificial e falhas intermitentes em dependencia critica.",
+  "scenario_group": "dependency",
+  "load_profile": {
+    "type": "constant-vus",
+    "vus": 6,
+    "duration": "35s"
+  },
+  "services": {
+    "directory": {
+      "latency_ms": 180,
+      "latency_jitter_ms": 70,
+      "error_rate": 0.08
+    }
+  }
+}

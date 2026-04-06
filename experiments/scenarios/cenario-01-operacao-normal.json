@@ -1,0 +1,11 @@
+{
+  "id": "cenario-01-operacao-normal",
+  "name": "Cenario 1 - Operacao normal",
+  "description": "Baseline com carga moderada, sem degradacao induzida e baixa fila.",
+  "scenario_group": "baseline",
+  "load_profile": {
+    "type": "constant-vus",
+    "vus": 4,
+    "duration": "30s"
+  }
+}

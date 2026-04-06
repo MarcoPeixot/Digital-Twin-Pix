@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-twinpix}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-twinpix123}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -30,7 +30,7 @@ services:
       KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
     ports:
-      - "9092:9092"
+      - "${KAFKA_PORT:-9092}:9092"
     healthcheck:
       test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 10s
@@ -78,6 +78,9 @@ services:
       - "${DIRECTORY_PORT:-8081}:8081"
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      EXPERIMENT_LATENCY_MS: ${DIRECTORY_EXPERIMENT_LATENCY_MS:-0}
+      EXPERIMENT_LATENCY_JITTER_MS: ${DIRECTORY_EXPERIMENT_LATENCY_JITTER_MS:-0}
+      EXPERIMENT_ERROR_RATE: ${DIRECTORY_EXPERIMENT_ERROR_RATE:-0.0}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 5s
@@ -94,6 +97,12 @@ services:
         condition: service_healthy
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      EXPERIMENT_PROCESSING_DELAY_MS: ${PROCESSING_EXPERIMENT_DELAY_MS:-0}
+      EXPERIMENT_PROCESSING_DELAY_JITTER_MS: ${PROCESSING_EXPERIMENT_DELAY_JITTER_MS:-0}
+      EXPERIMENT_ERROR_RATE: ${PROCESSING_EXPERIMENT_ERROR_RATE:-0.0}
+      EXPERIMENT_WORKER_COUNT: ${PROCESSING_EXPERIMENT_WORKER_COUNT:-4}
+      EXPERIMENT_QUEUE_CAPACITY: ${PROCESSING_EXPERIMENT_QUEUE_CAPACITY:-20}
+      EXPERIMENT_QUEUE_WAIT_TIMEOUT_MS: ${PROCESSING_EXPERIMENT_QUEUE_WAIT_TIMEOUT_MS:-2000}
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health | grep -q '\"status\":\"UP\"'"]
       interval: 5s
@@ -112,7 +121,7 @@ services:
         condition: service_healthy
     environment:
       PROMETHEUS_URL: http://prometheus:9090
-      TWIN_POLL_INTERVAL_SECONDS: 5
+      TWIN_POLL_INTERVAL_SECONDS: ${TWIN_POLL_INTERVAL_SECONDS:-5}
 
 volumes:
   pgdata:

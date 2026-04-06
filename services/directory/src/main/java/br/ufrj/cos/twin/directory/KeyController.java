@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 @RestController
 public class KeyController {
@@ -20,6 +21,8 @@ public class KeyController {
     private final Timer lookupTimer;
     private final Counter lookupSuccessCounter;
     private final Counter lookupNotFoundCounter;
+    private final Counter lookupErrorCounter;
+    private final DirectoryExperimentSettings experimentSettings;
 
     private static final Map<String, KeyLookupResponse> SIMULATED_KEYS = Map.of(
             "email@example.com", new KeyLookupResponse("email@example.com", "Maria Silva", "001", "12345-6"),
@@ -27,7 +30,11 @@ public class KeyController {
             "12345678900", new KeyLookupResponse("12345678900", "Ana Oliveira", "033", "78901-2")
     );
 
-    public KeyController(MeterRegistry meterRegistry) {
+    public KeyController(
+            MeterRegistry meterRegistry,
+            DirectoryExperimentSettings experimentSettings
+    ) {
+        this.experimentSettings = experimentSettings;
         this.lookupTimer = Timer.builder("twinpix_key_lookup_duration_seconds")
                 .description("Key lookup latency")
                 .publishPercentiles(0.5, 0.95, 0.99)
@@ -40,6 +47,10 @@ public class KeyController {
                 .tag("status", "not_found")
                 .description("Total key lookups")
                 .register(meterRegistry);
+        this.lookupErrorCounter = Counter.builder("twinpix_key_lookups_total")
+                .tag("status", "error")
+                .description("Total key lookups")
+                .register(meterRegistry);
     }
 
     @GetMapping("/keys/{key}")
@@ -47,6 +58,14 @@ public class KeyController {
         log.info("Key lookup request: {}", key);
 
         Timer.Sample sample = Timer.start();
+        simulateLatency();
+
+        if (shouldForceError()) {
+            lookupErrorCounter.increment();
+            sample.stop(lookupTimer);
+            log.warn("Forced directory error for key {}", key);
+            return ResponseEntity.internalServerError().build();
+        }
 
         KeyLookupResponse response = SIMULATED_KEYS.get(key);
         if (response == null) {
@@ -60,5 +79,28 @@ public class KeyController {
         lookupSuccessCounter.increment();
         log.info("Key resolved: {} -> {}", key, response.ownerName());
         return ResponseEntity.ok(response);
+    }
+
+    private void simulateLatency() {
+        long sleepMs = experimentSettings.latencyMs();
+        if (experimentSettings.latencyJitterMs() > 0) {
+            sleepMs += ThreadLocalRandom.current().nextLong(experimentSettings.latencyJitterMs() + 1);
+        }
+
+        if (sleepMs <= 0) {
+            return;
+        }
+
+        try {
+            Thread.sleep(sleepMs);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Directory latency simulation interrupted");
+        }
+    }
+
+    private boolean shouldForceError() {
+        return experimentSettings.errorRate() > 0.0
+                && ThreadLocalRandom.current().nextDouble() < experimentSettings.errorRate();
     }
 }

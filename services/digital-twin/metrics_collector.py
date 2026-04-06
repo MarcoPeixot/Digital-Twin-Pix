@@ -20,7 +20,7 @@ COMPONENT_METRICS = {
         "counter": "twinpix_key_lookups_total",
         "timer": "twinpix_key_lookup_duration_seconds",
         "success_status": "success",
-        "error_status": "not_found",
+        "error_status": "error",
     },
     "processing-core": {
         "counter": "twinpix_processing_total",

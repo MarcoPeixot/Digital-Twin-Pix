@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "defaults": {
+    "load_profile": {
+      "type": "constant-vus",
+      "vus": 4,
+      "duration": "30s"
+    },
+    "transaction": {
+      "amount": 10.5,
+      "source_key": "11111111111",
+      "destination_keys": [
+        "email@example.com",
+        "11999990000",
+        "12345678900"
+      ]
+    },
+    "services": {
+      "directory": {
+        "latency_ms": 0,
+        "latency_jitter_ms": 0,
+        "error_rate": 0.0
+      },
+      "processing_core": {
+        "delay_ms": 0,
+        "delay_jitter_ms": 0,
+        "error_rate": 0.0,
+        "worker_count": 4,
+        "queue_capacity": 20,
+        "queue_wait_timeout_ms": 2000
+      },
+      "digital_twin": {
+        "poll_interval_seconds": 5
+      }
+    },
+    "collection": {
+      "warmup_seconds": 10,
+      "cooldown_seconds": 5,
+      "prometheus_range_seconds": 60
+    }
+  }
+}
