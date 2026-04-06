@@ -10,6 +10,7 @@ import tempfile
 import time
 import urllib.parse
 import urllib.request
+import uuid
 from datetime import datetime, timezone
 
 
@@ -308,8 +309,9 @@ def main():
     experiment = deep_merge(defaults, scenario)
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    run_id = f"{timestamp}__{experiment['id']}__{args.mode}"
-    project_name = f"twinpix-{timestamp.lower()}"
+    run_nonce = uuid.uuid4().hex[:8]
+    run_id = f"{timestamp}__{run_nonce}__{experiment['id']}__{args.mode}"
+    project_name = f"twinpix-{timestamp.lower()}-{run_nonce}"
     run_dir = RESULTS_DIR / run_id
     run_dir.mkdir(parents=True, exist_ok=False)
 
@@ -344,6 +346,7 @@ def main():
         "name": experiment["name"],
       },
       "mode": args.mode,
+      "run_nonce": run_nonce,
       "effective_config_sha256": effective_config_hash,
       "git": git_info,
       "docker_project_name": project_name,
