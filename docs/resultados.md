@@ -43,9 +43,22 @@ Descrever impacto quantitativo e qualitativo.
 Os resultados devem combinar:
 
 * tabelas comparativas;
-* graficos de series temporais;
+* graficos simples ou de series temporais, conforme os artefatos disponiveis;
 * texto analitico;
 * conclusao objetiva por cenario.
+
+## 4.1 Saidas consolidadas no repositorio
+
+A analise final pode ser materializada em `/results/analysis/<timestamp>` contendo:
+
+* `manifest.json`;
+* `summary.json`;
+* `summary.csv`;
+* `report.md`;
+* `scenarios/<scenario_id>/comparison.json`;
+* `scenarios/<scenario_id>/comparison.csv`;
+* `scenarios/<scenario_id>/report.md`;
+* `scenarios/<scenario_id>/chart-<scenario_id>.svg`.
 
 ## 5. Perguntas que todo resultado deve responder
 

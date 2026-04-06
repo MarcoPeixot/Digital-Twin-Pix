@@ -1,0 +1,44 @@
+{
+  "pairs": [
+    {
+      "scenario_id": "cenario-01-operacao-normal",
+      "scenario_name": "Cenario 1 - Operacao normal",
+      "without_twin_run_id": "20260406T012528Z__cenario-01-operacao-normal__without-twin",
+      "with_twin_run_id": "20260406T013316Z__cenario-01-operacao-normal__with-twin",
+      "config_sha256": "df7eaccdb2ebd28a8f4c5395392d6ea5731d3e0a22027775a817f42ac70f0993",
+      "git_commit_without_twin": "66992fe5c3f8b5efc12e13eada417f3177ca91f7",
+      "git_commit_with_twin": "66992fe5c3f8b5efc12e13eada417f3177ca91f7",
+      "git_dirty_without_twin": true,
+      "git_dirty_with_twin": true,
+      "effect_label": "neutro ou inconclusivo",
+      "effect_basis": "Sem degradacao observada e sem atividade registrada do twin; diferencas pequenas ficam tratadas como variacao de execucao, nao como ganho experimental.",
+      "effect_score": 6,
+      "throughput_req_s_without_twin": 760.1798420117838,
+      "throughput_req_s_with_twin": 796.3886925220194,
+      "load_http_req_avg_ms_without_twin": 5.173365681808194,
+      "load_http_req_avg_ms_with_twin": 4.931643820213422,
+      "load_http_req_p95_ms_without_twin": 13.045549999999995,
+      "load_http_req_p95_ms_with_twin": 12.171728699999994,
+      "error_rate_pct_without_twin": 0.0,
+      "error_rate_pct_with_twin": 0.0,
+      "processing_backlog_max_without_twin": 0.0,
+      "processing_backlog_max_with_twin": 0.0,
+      "processing_timeout_total_without_twin": 0.0,
+      "processing_timeout_total_with_twin": 0.0
+    }
+  ],
+  "missing_scenarios": [
+    "cenario-02-pico-repentino",
+    "cenario-03-directory-degradado",
+    "cenario-04-saturacao-fila",
+    "cenario-05-falha-parcial-processing"
+  ],
+  "global_conclusion": {
+    "headline": "No conjunto disponivel, o efeito agregado do gemeo digital ficou neutro ou inconclusivo.",
+    "scenario_count": 1,
+    "favorable_scenarios": 0,
+    "unfavorable_scenarios": 0,
+    "neutral_scenarios": 1,
+    "availability": "Ainda faltam pares completos para os cenarios: cenario-02-pico-repentino, cenario-03-directory-degradado, cenario-04-saturacao-fila, cenario-05-falha-parcial-processing."
+  }
+}

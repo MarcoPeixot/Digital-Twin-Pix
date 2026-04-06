@@ -1,0 +1,12 @@
+metric_key,metric_label,unit,better,without_twin,with_twin,delta,delta_pct,improved,source
+throughput_req_s,Throughput,req/s,higher,760.1798420117838,796.3886925220194,36.20885051023561,4.763195300523941,True,derived
+load_http_req_avg_ms,Latencia media HTTP,ms,lower,5.173365681808194,4.931643820213422,-0.2417218615947725,-4.672429448487892,True,derived
+load_http_req_p95_ms,Latencia p95 HTTP,ms,lower,13.045549999999995,12.171728699999994,-0.8738213000000012,-6.698232730701285,True,derived
+api_gateway_latency_p95_ms,Latencia p95 API Gateway,ms,lower,11.4688,10.944512,-0.5242880000000003,-4.571428571428574,True,summary
+processing_latency_p95_ms,Latencia p95 Processing Core,ms,lower,4.42368,4.030464,-0.3932159999999998,-8.888888888888884,True,summary
+directory_latency_p95_ms,Latencia p95 Directory,ms,lower,0.001854,0.0016619999999999998,-0.0001920000000000001,-10.355987055016188,True,summary
+success_rate_pct,Taxa de sucesso,%,higher,100.0,100.0,0.0,0.0,,derived
+error_rate_pct,Taxa de erro,%,lower,0.0,0.0,0.0,0.0,,derived
+processing_backlog_max,Backlog maximo,itens,lower,0.0,0.0,0.0,0.0,,summary
+processing_timeout_total,Timeouts de processamento,eventos,lower,0.0,0.0,0.0,0.0,,summary
+processing_queue_rejections_total,Rejeicoes por fila,eventos,lower,0.0,0.0,0.0,0.0,,summary

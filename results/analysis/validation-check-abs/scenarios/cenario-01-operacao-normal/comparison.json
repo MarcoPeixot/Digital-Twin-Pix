@@ -1,0 +1,150 @@
+{
+  "scenario_id": "cenario-01-operacao-normal",
+  "scenario_name": "Cenario 1 - Operacao normal",
+  "config_sha256": "df7eaccdb2ebd28a8f4c5395392d6ea5731d3e0a22027775a817f42ac70f0993",
+  "without_twin_run_id": "20260406T012528Z__cenario-01-operacao-normal__without-twin",
+  "with_twin_run_id": "20260406T013316Z__cenario-01-operacao-normal__with-twin",
+  "effect_score": 6,
+  "effect_label": "favoravel ao twin",
+  "metrics": [
+    {
+      "key": "throughput_req_s",
+      "label": "Throughput",
+      "unit": "req/s",
+      "better": "higher",
+      "without_twin": 760.1798420117838,
+      "with_twin": 796.3886925220194,
+      "delta": 36.20885051023561,
+      "delta_pct": 4.763195300523941,
+      "improved": true,
+      "source": "derived"
+    },
+    {
+      "key": "load_http_req_avg_ms",
+      "label": "Latencia media HTTP",
+      "unit": "ms",
+      "better": "lower",
+      "without_twin": 5.173365681808194,
+      "with_twin": 4.931643820213422,
+      "delta": -0.2417218615947725,
+      "delta_pct": -4.672429448487892,
+      "improved": true,
+      "source": "derived"
+    },
+    {
+      "key": "load_http_req_p95_ms",
+      "label": "Latencia p95 HTTP",
+      "unit": "ms",
+      "better": "lower",
+      "without_twin": 13.045549999999995,
+      "with_twin": 12.171728699999994,
+      "delta": -0.8738213000000012,
+      "delta_pct": -6.698232730701285,
+      "improved": true,
+      "source": "derived"
+    },
+    {
+      "key": "api_gateway_latency_p95_ms",
+      "label": "Latencia p95 API Gateway",
+      "unit": "ms",
+      "better": "lower",
+      "without_twin": 11.4688,
+      "with_twin": 10.944512,
+      "delta": -0.5242880000000003,
+      "delta_pct": -4.571428571428574,
+      "improved": true,
+      "source": "summary"
+    },
+    {
+      "key": "processing_latency_p95_ms",
+      "label": "Latencia p95 Processing Core",
+      "unit": "ms",
+      "better": "lower",
+      "without_twin": 4.42368,
+      "with_twin": 4.030464,
+      "delta": -0.3932159999999998,
+      "delta_pct": -8.888888888888884,
+      "improved": true,
+      "source": "summary"
+    },
+    {
+      "key": "directory_latency_p95_ms",
+      "label": "Latencia p95 Directory",
+      "unit": "ms",
+      "better": "lower",
+      "without_twin": 0.001854,
+      "with_twin": 0.0016619999999999998,
+      "delta": -0.0001920000000000001,
+      "delta_pct": -10.355987055016188,
+      "improved": true,
+      "source": "summary"
+    },
+    {
+      "key": "success_rate_pct",
+      "label": "Taxa de sucesso",
+      "unit": "%",
+      "better": "higher",
+      "without_twin": 100.0,
+      "with_twin": 100.0,
+      "delta": 0.0,
+      "delta_pct": 0.0,
+      "improved": null,
+      "source": "derived"
+    },
+    {
+      "key": "error_rate_pct",
+      "label": "Taxa de erro",
+      "unit": "%",
+      "better": "lower",
+      "without_twin": 0.0,
+      "with_twin": 0.0,
+      "delta": 0.0,
+      "delta_pct": 0.0,
+      "improved": null,
+      "source": "derived"
+    },
+    {
+      "key": "processing_backlog_max",
+      "label": "Backlog maximo",
+      "unit": "itens",
+      "better": "lower",
+      "without_twin": 0.0,
+      "with_twin": 0.0,
+      "delta": 0.0,
+      "delta_pct": 0.0,
+      "improved": null,
+      "source": "summary"
+    },
+    {
+      "key": "processing_timeout_total",
+      "label": "Timeouts de processamento",
+      "unit": "eventos",
+      "better": "lower",
+      "without_twin": 0.0,
+      "with_twin": 0.0,
+      "delta": 0.0,
+      "delta_pct": 0.0,
+      "improved": null,
+      "source": "summary"
+    },
+    {
+      "key": "processing_queue_rejections_total",
+      "label": "Rejeicoes por fila",
+      "unit": "eventos",
+      "better": "lower",
+      "without_twin": 0.0,
+      "with_twin": 0.0,
+      "delta": 0.0,
+      "delta_pct": 0.0,
+      "improved": null,
+      "source": "summary"
+    }
+  ],
+  "interpretation": {
+    "degradacao_observada": "Nao houve degradacao observada no resumo consolidado.",
+    "inicio_degradacao": "O ponto exato de inicio da degradacao nao pode ser determinado com precisao porque os artefatos atuais sao snapshots finais, nao series temporais completas.",
+    "comportamento_twin": "Nao houve alerta ou recomendacao registrada pelo twin neste cenario.",
+    "mitigacao": "Nao ha evidencia de mitigacao efetiva registrada nos artefatos atuais.",
+    "efeito": "Conclusao automatica do cenario: favoravel ao twin. O ganho mensuravel favoreceu o twin em throughput maior (796.39 vs 760.18); latencia p95 menor (12.17 vs 13.05)."
+  }
+}
